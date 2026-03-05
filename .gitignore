@@ -1,0 +1,6 @@
+.env
+.venv/
+__pycache__/
+processed.json
+*.pyc
+debug_email.html
