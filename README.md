@@ -1,14 +1,16 @@
-# AutoMail - DeepLearning.AI 邮件摘要飞书推送机器人
+# AutoMail - 邮件摘要飞书推送机器人
 
-自动从 163 邮箱抓取 [DeepLearning.AI DataPoints](https://www.deeplearning.ai/the-batch/) 邮件，使用 LLM 将内容总结为简体中文，并推送到飞书群聊。
+自动从邮箱抓取指定发件人的邮件，使用 LLM 将内容总结为简体中文，并推送到飞书群聊。
+
+> 本项目以抓取 [DeepLearning.AI DataPoints](https://www.deeplearning.ai/the-batch/) 邮件（`datapoints@deeplearning.ai`）为默认示例，你可以通过配置 `TARGET_SENDER` 和 `SYSTEM_PROMPT` 来适配任意发件人的邮件摘要需求。
 
 ## 功能
 
-- 通过 IMAP 自动抓取 `datapoints@deeplearning.ai` 发送的邮件（使用真实 IMAP UID 标识，跨会话稳定）
+- 通过 IMAP 自动抓取指定发件人的邮件（使用真实 IMAP UID 标识，跨会话稳定）
 - 批量获取邮箱 FROM 头进行发件人过滤，大邮箱也能快速完成
-- 解析 HTML 邮件内容，提取新闻条目（标题、概要、链接）
+- 解析 HTML 邮件内容，提取正文文本
 - 调用 LLM API 生成中文摘要（默认 OpenRouter，支持任何 OpenAI 兼容 API），多模型自动 fallback
-- 通过飞书自定义机器人 Webhook 推送富文本消息（支持超链接）
+- 通过飞书自定义机器人 Webhook 推送消息卡片（支持 Markdown 加粗、超链接）
 - 首次运行仅处理最新 1 封邮件，后续运行自动处理所有新增邮件并逐条推送
 - 自动记录已处理邮件 UID，避免重复推送
 - 支持手动执行和定时调度两种运行方式
@@ -16,9 +18,9 @@
 ## 工作流程
 
 ```
-IMAP 连接 163 邮箱
+IMAP 连接邮箱
     ↓
-批量获取所有邮件 FROM 头，过滤目标发件人
+批量获取所有邮件 FROM 头，过滤 TARGET_SENDER 指定的发件人
     ↓
 首次运行？ → 是：仅取最新 1 封，旧邮件标记为已处理
            → 否：取所有未处理邮件
@@ -35,13 +37,13 @@ IMAP 连接 163 邮箱
 
 ## 前置准备
 
-### 1. 163 邮箱开启 IMAP
+### 1. 邮箱开启 IMAP
 
-登录 163 邮箱网页版 → 设置 → POP3/SMTP/IMAP → 开启 IMAP 服务 → 生成**授权码**（非登录密码）。
+以 163 邮箱为例：登录网页版 → 设置 → POP3/SMTP/IMAP → 开启 IMAP 服务 → 生成**授权码**（非登录密码）。其他邮箱（Gmail、Outlook 等）同理，需开启 IMAP 并获取授权凭据。
 
 ### 2. LLM API Key
 
-默认使用 [OpenRouter](https://openrouter.ai/)（免费模型 `deepseek/deepseek-chat-v3-0324:free`），也支持其他兼容 OpenAI 格式的 API 供应商（见下方"自定义 LLM 设置"章节）。
+默认使用 [OpenRouter](https://openrouter.ai/)（免费模型 `z-ai/glm-4.5-air:free`），也支持其他兼容 OpenAI 格式的 API 供应商（见下方"自定义 LLM 设置"章节）。
 
 ### 3. 飞书自定义机器人
 
@@ -82,7 +84,8 @@ FEISHU_WEBHOOK_URL=你的飞书Webhook地址
 |--------|--------|------|
 | `EMAIL_IMAP_HOST` | `imap.163.com` | IMAP 服务器地址 |
 | `LLM_API_URL` | `https://openrouter.ai/api/v1/chat/completions` | LLM API 地址 |
-| `LLM_MODEL` | `deepseek/deepseek-chat-v3-0324:free` | LLM 模型名称 |
+| `LLM_MODEL` | `z-ai/glm-4.5-air:free` | LLM 模型名称 |
+| `TARGET_SENDER` | `datapoints@deeplearning.ai` | 目标发件人邮箱地址 |
 | `SYSTEM_PROMPT` | （内置默认值） | 发送给 LLM 的系统提示词 |
 | `LLM_FALLBACK_MODELS` | OpenRouter 免费模型（3 个） | Fallback 模型列表，逗号分隔，留空禁用 |
 | `SCHEDULE_HOUR` | `7` | 每天执行的小时（0-23） |

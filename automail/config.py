@@ -18,7 +18,7 @@ LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
 LLM_API_URL: str = os.getenv(
     "LLM_API_URL", "https://openrouter.ai/api/v1/chat/completions"
 )
-LLM_MODEL: str = os.getenv("LLM_MODEL", "deepseek/deepseek-chat-v3-0324:free")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "z-ai/glm-4.5-air:free")
 
 _DEFAULT_SYSTEM_PROMPT = (
     "你是一个AI新闻摘要助手。用户会提供一封来自 DeepLearning.AI DataPoints 的英文邮件原文。\n"
@@ -55,7 +55,7 @@ SCHEDULE_MINUTE: int = int(os.getenv("SCHEDULE_MINUTE", "30"))
 
 PROCESSED_FILE: Path = PROJECT_ROOT / "processed.json"
 
-TARGET_SENDER: str = "datapoints@deeplearning.ai"
+TARGET_SENDER: str = os.getenv("TARGET_SENDER", "datapoints@deeplearning.ai")
 
 IMAP_TIMEOUT: int = int(os.getenv("IMAP_TIMEOUT", "30"))
 
