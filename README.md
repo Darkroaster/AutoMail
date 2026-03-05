@@ -1,6 +1,8 @@
+[English](README_EN.md) | **中文**
+
 # AutoMail - 邮件摘要飞书推送机器人
 
-自动从邮箱抓取指定发件人的邮件，使用 LLM 将内容总结为简体中文，并推送到飞书群聊。
+自动从邮箱抓取指定发件人的邮件，使用 LLM 生成摘要，并推送到飞书群聊。
 
 > 本项目以抓取 [DeepLearning.AI DataPoints](https://www.deeplearning.ai/the-batch/) 邮件（`datapoints@deeplearning.ai`）为默认示例，你可以通过配置 `TARGET_SENDER` 和 `SYSTEM_PROMPT` 来适配任意发件人的邮件摘要需求。
 
@@ -9,7 +11,7 @@
 - 通过 IMAP 自动抓取指定发件人的邮件（使用真实 IMAP UID 标识，跨会话稳定）
 - 批量获取邮箱 FROM 头进行发件人过滤，大邮箱也能快速完成
 - 解析 HTML 邮件内容，提取正文文本
-- 调用 LLM API 生成中文摘要（默认 OpenRouter，支持任何 OpenAI 兼容 API），多模型自动 fallback
+- 调用 LLM API 生成摘要（输出语言和格式通过 `SYSTEM_PROMPT` 完全自定义），多模型自动 fallback
 - 通过飞书自定义机器人 Webhook 推送消息卡片（支持 Markdown 加粗、超链接）
 - 首次运行仅处理最新 1 封邮件，后续运行自动处理所有新增邮件并逐条推送
 - 自动记录已处理邮件 UID，避免重复推送
@@ -28,7 +30,7 @@ IMAP 连接邮箱
 逐封处理：
   HTML 解析 → 纯文本提取与清洗
     ↓
-  调用 LLM API 生成中文摘要
+  调用 LLM API 生成摘要（语言/格式由 SYSTEM_PROMPT 决定）
     ↓
   飞书 Webhook 推送富文本消息
     ↓
@@ -129,13 +131,31 @@ LLM_API_KEY=你的API Key
 LLM_MODEL=deepseek-chat
 ```
 
-如需自定义发送给 LLM 的系统提示词（System Prompt），在 `.env` 中设置 `SYSTEM_PROMPT` 即可覆盖默认值：
+### 自定义输出语言与格式
+
+推送到飞书的摘要内容完全由 `SYSTEM_PROMPT` 决定——包括**输出语言**、**摘要格式**、**详细程度**等。你可以在 `.env` 中设置 `SYSTEM_PROMPT` 来覆盖内置默认值。
+
+以下是一些示例：
+
+**输出日文摘要：**
 
 ```ini
-SYSTEM_PROMPT=你是一个翻译助手，请将以下英文邮件翻译为简体中文...
+SYSTEM_PROMPT=あなたはニュース要約アシスタントです。ユーザーが提供する英文メールの内容を日本語で要約してください...
 ```
 
-不设置则使用内置的新闻摘要 prompt。
+**输出英文摘要：**
+
+```ini
+SYSTEM_PROMPT=You are a news summarizer. Summarize each news item from the email in English, no more than 2 sentences each...
+```
+
+**输出简体中文全文翻译（而非摘要）：**
+
+```ini
+SYSTEM_PROMPT=你是一个翻译助手，请将以下英文邮件完整翻译为简体中文，保留原文格式和链接...
+```
+
+不设置则使用内置的简体中文新闻摘要 prompt。
 
 Fallback 模型同样可通过 `.env` 配置。默认值是 OpenRouter 的免费模型，非 OpenRouter 用户应改为自己供应商支持的模型，或设为空以禁用 fallback：
 
@@ -156,7 +176,7 @@ AutoMail/
 │   ├── config.py           # 配置管理（从 .env 加载）
 │   ├── email_fetcher.py    # IMAP 邮件抓取（UID 管理、首次运行逻辑）
 │   ├── email_parser.py     # HTML 邮件解析与文本清洗
-│   ├── summarizer.py       # LLM 中文摘要（多模型 fallback）
+│   ├── summarizer.py       # LLM 摘要生成（多模型 fallback）
 │   └── feishu_bot.py       # 飞书 Webhook 富文本推送
 ├── main.py                 # 主入口（单次执行 / 定时调度）
 ├── test_steps.py           # 逐步诊断脚本
