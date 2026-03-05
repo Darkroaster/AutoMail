@@ -1,0 +1,49 @@
+name: Daily Email Summary
+
+on:
+  schedule:
+    # UTC 23:30 = 北京时间 07:30 (UTC+8)
+    - cron: "30 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run AutoMail
+        env:
+          EMAIL_IMAP_HOST: ${{ secrets.EMAIL_IMAP_HOST }}
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          EMAIL_AUTH_CODE: ${{ secrets.EMAIL_AUTH_CODE }}
+          LLM_API_URL: ${{ secrets.LLM_API_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          LLM_FALLBACK_MODELS: ${{ secrets.LLM_FALLBACK_MODELS }}
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          TARGET_SENDER: ${{ secrets.TARGET_SENDER }}
+          SYSTEM_PROMPT: ${{ secrets.SYSTEM_PROMPT }}
+          FIRST_RUN_LIMIT: ${{ secrets.FIRST_RUN_LIMIT }}
+        run: python main.py --once
+
+      - name: Persist processed.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f processed.json
+          git diff --staged --quiet || git commit -m "chore: update processed.json [skip ci]"
+          git push

@@ -103,13 +103,61 @@ FEISHU_WEBHOOK_URL=你的飞书Webhook地址
 python main.py --once
 ```
 
-### 定时调度（默认每天 07:30 执行）
+### 定时运行
+
+有三种方式实现每日定时执行，按需选择：
+
+#### 方式一：GitHub Actions（推荐，免服务器）
+
+本项目自带 GitHub Actions 工作流（`.github/workflows/daily.yml`），Fork 后无需任何服务器即可每天自动运行。
+
+**设置步骤：**
+
+1. Fork 或推送本项目到你的 GitHub 仓库
+2. 进入仓库页面 → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+3. 添加以下 Secrets（必填项）：
+
+| Secret 名称 | 说明 |
+|-------------|------|
+| `EMAIL_ADDRESS` | 邮箱地址 |
+| `EMAIL_AUTH_CODE` | IMAP 授权码 |
+| `LLM_API_KEY` | LLM API 密钥 |
+| `FEISHU_WEBHOOK_URL` | 飞书 Webhook 地址 |
+
+4. 可选 Secrets（不设置则使用默认值）：`EMAIL_IMAP_HOST`、`LLM_API_URL`、`LLM_MODEL`、`LLM_FALLBACK_MODELS`、`TARGET_SENDER`、`SYSTEM_PROMPT`、`FIRST_RUN_LIMIT`
+
+5. 进入 **Actions** 页签，如看到提示则点击 **I understand my workflows, go ahead and enable them**
+
+默认每天北京时间 07:30（UTC 23:30）自动执行。也可点击 **Run workflow** 手动触发。
+
+> `processed.json` 会在每次运行后自动提交回仓库，确保状态跨次持久化。
+
+#### 方式二：本地常驻进程（`--schedule` 模式）
+
+使用内置的 APScheduler 调度器，进程在后台持续运行，到点自动执行：
 
 ```bash
 python main.py --schedule
 ```
 
 执行时间通过 `.env` 中的 `SCHEDULE_HOUR` 和 `SCHEDULE_MINUTE` 调整。
+
+> 注意：此方式需要终端/进程保持运行。关闭终端后任务停止。适合配合 `nohup`（Linux）或将脚本注册为系统服务使用。
+
+#### 方式三：Windows 任务计划程序
+
+利用 Windows 系统自带的任务计划程序，无需保持进程运行：
+
+1. 按 `Win + S` 搜索"任务计划程序"并打开
+2. 右侧点击 **创建基本任务**
+3. 设置触发器为"每天"，时间设为 `07:30`
+4. 操作选"启动程序"：
+   - **程序或脚本**：填写 Python 路径，例如 `E:\1.files_skyler\Projects\AutoMail\.venv\Scripts\python.exe`
+   - **添加参数**：`main.py --once`
+   - **起始于**：填写项目目录，例如 `E:\1.files_skyler\Projects\AutoMail`
+5. 完成创建
+
+> 注意：电脑需要在计划时间处于开机状态，任务才会执行。
 
 ### 逐步诊断
 
@@ -171,18 +219,21 @@ LLM_FALLBACK_MODELS=
 
 ```
 AutoMail/
+├── .github/workflows/
+│   └── daily.yml           # GitHub Actions 定时工作流
 ├── automail/               # 核心业务包
 │   ├── __init__.py
 │   ├── config.py           # 配置管理（从 .env 加载）
 │   ├── email_fetcher.py    # IMAP 邮件抓取（UID 管理、首次运行逻辑）
 │   ├── email_parser.py     # HTML 邮件解析与文本清洗
 │   ├── summarizer.py       # LLM 摘要生成（多模型 fallback）
-│   └── feishu_bot.py       # 飞书 Webhook 富文本推送
+│   └── feishu_bot.py       # 飞书 Webhook 消息卡片推送
 ├── main.py                 # 主入口（单次执行 / 定时调度）
 ├── test_steps.py           # 逐步诊断脚本
 ├── .env.example            # 配置模板（含所有可配置项说明）
 ├── .gitignore              # Git 忽略规则
 ├── requirements.txt        # Python 依赖（含版本范围）
-├── README.md               # 本文件
+├── README.md               # 中文文档
+├── README_EN.md            # English documentation
 └── processed.json          # 已处理邮件 UID 记录（自动生成，勿手动编辑）
 ```

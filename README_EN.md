@@ -103,13 +103,61 @@ Optional settings (all have defaults):
 python main.py --once
 ```
 
-### Scheduled (daily at 07:30 by default)
+### Scheduled Execution
+
+Three ways to run the bot on a daily schedule:
+
+#### Option 1: GitHub Actions (Recommended, No Server Required)
+
+This project includes a GitHub Actions workflow (`.github/workflows/daily.yml`). After forking, it runs automatically every day with zero infrastructure.
+
+**Setup Steps:**
+
+1. Fork or push this project to your GitHub repository
+2. Go to your repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+3. Add the following required Secrets:
+
+| Secret Name | Description |
+|-------------|-------------|
+| `EMAIL_ADDRESS` | Email address |
+| `EMAIL_AUTH_CODE` | IMAP authorization code |
+| `LLM_API_KEY` | LLM API key |
+| `FEISHU_WEBHOOK_URL` | Feishu Webhook URL |
+
+4. Optional Secrets (defaults are used if not set): `EMAIL_IMAP_HOST`, `LLM_API_URL`, `LLM_MODEL`, `LLM_FALLBACK_MODELS`, `TARGET_SENDER`, `SYSTEM_PROMPT`, `FIRST_RUN_LIMIT`
+
+5. Go to the **Actions** tab. If prompted, click **I understand my workflows, go ahead and enable them**
+
+Runs daily at 07:30 Beijing time (23:30 UTC) by default. You can also click **Run workflow** to trigger manually.
+
+> `processed.json` is automatically committed back to the repo after each run to persist state across executions.
+
+#### Option 2: Local Persistent Process (`--schedule` Mode)
+
+Uses the built-in APScheduler to keep the process running and execute at the configured time:
 
 ```bash
 python main.py --schedule
 ```
 
 Adjust the schedule via `SCHEDULE_HOUR` and `SCHEDULE_MINUTE` in `.env`.
+
+> Note: The terminal/process must remain running. Closing it stops the scheduler. On Linux, consider using `nohup` or registering as a system service.
+
+#### Option 3: Windows Task Scheduler
+
+Use the built-in Windows Task Scheduler — no persistent process needed:
+
+1. Press `Win + S`, search for "Task Scheduler" and open it
+2. Click **Create Basic Task** on the right panel
+3. Set the trigger to "Daily" at `07:30`
+4. Choose "Start a program":
+   - **Program/script**: Path to Python, e.g., `E:\...\AutoMail\.venv\Scripts\python.exe`
+   - **Add arguments**: `main.py --once`
+   - **Start in**: Project directory, e.g., `E:\...\AutoMail`
+5. Finish the wizard
+
+> Note: The computer must be powered on at the scheduled time for the task to run.
 
 ### Step-by-Step Diagnostics
 
@@ -173,6 +221,8 @@ LLM_FALLBACK_MODELS=
 
 ```
 AutoMail/
+├── .github/workflows/
+│   └── daily.yml           # GitHub Actions scheduled workflow
 ├── automail/               # Core package
 │   ├── __init__.py
 │   ├── config.py           # Configuration (loads from .env)
